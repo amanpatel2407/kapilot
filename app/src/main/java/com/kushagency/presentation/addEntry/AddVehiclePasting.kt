@@ -58,7 +58,7 @@ class AddVehiclePasting : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         mBinding = ActivityAddVehiclePastingBinding.inflate(layoutInflater)
         setContentView(mBinding.root)
-
+//dfdofdf
 
         Thread {
             //run code on background thread
