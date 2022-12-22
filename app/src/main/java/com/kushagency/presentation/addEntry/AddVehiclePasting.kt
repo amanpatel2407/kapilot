@@ -1,7 +1,6 @@
 package com.kushagency.presentation.addEntry
 
 import android.Manifest
-import android.R.attr.thumbnail
 import android.app.Activity
 import android.content.ContentValues
 import android.content.Context
@@ -22,22 +21,21 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
+import androidx.lifecycle.lifecycleScope
 import com.android.volley.DefaultRetryPolicy
-import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
 import com.kushagency.databinding.ActivityAddVehiclePastingBinding
 import com.kushagency.network.VolleyMultipartRequest
 import com.kushagency.presentation.SlotDetail
 import com.kushagency.presentation.home.MainActivity
-import com.kushagency.presentation.home.MainActivity.Companion.ADDRESS
 import com.kushagency.presentation.home.MainActivity.Companion.LATITUDE
 import com.kushagency.presentation.home.MainActivity.Companion.LONGITUDE
 import com.kushagency.presentation.home.MainActivity.Companion.SLOTID
-import com.kushagency.utils.BASE_URL
 import com.kushagency.utils.Loader
 import com.kushagency.utils.isValidVehicleNumber
 import com.kushagency.utils.showToast
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -113,7 +111,9 @@ class AddVehiclePasting : AppCompatActivity() {
                 showToast("Select Image")
             } else {
 
-                uploadImage(IMAGE_BITMAP!!)
+               lifecycleScope.launch{
+                   uploadImage(IMAGE_BITMAP!!)
+               }
             }
         }
     }
@@ -241,11 +241,125 @@ class AddVehiclePasting : AppCompatActivity() {
         }
     }
 
+
+  /*  fun MultipartApi(
+        requestFor: String?,
+        serviceId: String?,
+        path: String?,
+        filename: String?,
+        comment: String,
+        others: String
+    ) {
+        // String url=Variables.instantServiceMultipart;
+        binding.progressBar.visibility = View.VISIBLE
+        binding.submit.visibility = View.GONE
+        val volleyMultipartRequest: VolleyMultipartRequest = object : VolleyMultipartRequest(
+            Request.Method.POST, Variables.instantServiceMultipart,
+            object : Response.Listener<NetworkResponse> {
+                override fun onResponse(response: NetworkResponse) {
+                    binding.progressBar.visibility = View.GONE
+                    binding.submit.visibility = View.VISIBLE
+                    Log.d("results", String(response.data))
+                    rQueue?.getCache()?.clear()
+                    try {
+                        val jsonObject = JSONObject(String(response.data))
+                        val code: String = jsonObject.optString("code")
+                        if ((code == "200")) {
+                            Toast.makeText(Companion.context, "Upload Successfully", Toast.LENGTH_SHORT)
+                                .show()
+                            val requestId: String = jsonObject.optString("requestId")
+                            val activity: AppCompatActivity? = Companion.context as AppCompatActivity?
+                            val myFragment: Fragment = ChatFragment()
+                            val b = Bundle()
+                            b.putString("requestId", requestId)
+                            myFragment.arguments = b
+                            if (activity != null) {
+                                activity.getSupportFragmentManager().beginTransaction()
+                                    .replace(R.id.frame_layout_home_screen, myFragment)
+                                    .addToBackStack(null).commit()
+                            }
+                            // binding.spinner.setSelection(0);
+                            binding.chooseFile.text = "choose file"
+                            if (binding.comment.text != null) {
+                                binding.comment.setText("")
+                            }
+                            if (binding.others.visibility == View.VISIBLE) {
+                                binding.others.visibility = View.GONE
+                            }
+                        } else if ((code == "201")) {
+                            Toast.makeText(
+                                Companion.context,
+                                jsonObject.optString("message"),
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    } catch (e: JSONException) {
+                        e.printStackTrace()
+                    }
+                }
+            },
+            object : Response.ErrorListener {
+                override fun onErrorResponse(error: VolleyError) {
+                    binding.progressBar.visibility = View.GONE
+                    binding.submit.visibility = View.VISIBLE
+                    Toast.makeText(Companion.context, error.message, Toast.LENGTH_SHORT).show()
+                }
+            }) {
+            // request.put("userId", Variables.sharedPreferences.getString(Variables.user_id, null));
+            *//*
+      * If you want to add more parameters with the image
+      * you can do it here
+      * here we have only one parameter with the image
+      * which is tags
+      * *//*
+            override fun getParams(): MutableMap<String, String>? {
+                val request: MutableMap<String, String> = HashMap()
+
+                // request.put("userId", Variables.sharedPreferences.getString(Variables.user_id, null));
+                request["userId"] =
+                    (Variables.sharedPreferences.getString(Variables.user_id, null))!!
+                request["requestFor"] = (requestFor)!!
+                request["serviceId"] = Variables.serviceId!!
+                request["file"] = (path)!!
+                request["fileName"] = (filename)!!
+                request["comment"] = comment
+                request["other"] = others
+                Log.d("parameters", "getParams: ressssssoo $request")
+                return request
+            }
+
+            *//*
+                         *pass files using below method
+                         * *//*
+            override fun getByteData(): MutableMap<String, DataPart> {
+                val params: MutableMap<String, DataPart> = HashMap<String, DataPart>()
+                params["file"] = DataPart(
+                    FileUtils.getFileName(Companion.context, Variables.fileUri),
+                    Functions.getFileDataFromDrawable(
+                        Companion.context
+                    )
+                )
+                return params
+            }
+        }
+        volleyMultipartRequest.setRetryPolicy(
+            DefaultRetryPolicy(
+                0,
+                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
+                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
+            )
+        )
+        rQueue = Volley.newRequestQueue(Companion.context)
+        rQueue!!.add<NetworkResponse>(volleyMultipartRequest)
+    }
+    */
+
+
     private fun uploadImage(bitmap: Bitmap) {
-        Loader.showLoader(this)
+        Loader.showLoader(this@AddVehiclePasting)
         val volleyMultipartRequest: VolleyMultipartRequest =
             object : VolleyMultipartRequest(
-                Request.Method.POST, "$BASE_URL/addUserAd", { response ->
+                Method.POST, "http://kushagencyindore.com/admin/api/addUserAd", { response ->
 
                     val jsonObject = JSONObject(String(response.data))
                     Log.d("data", "uploadImage: ${jsonObject}")
@@ -269,10 +383,11 @@ class AddVehiclePasting : AppCompatActivity() {
                     params.put("driver_name", mBinding.driveName.text.toString() ); // add string parameters
                     params.put("mobile_number",mBinding.driverNumber.text.toString()); // add string parameters
                     params.put("auto_number", mBinding.vehicleNumber.text.toString()); // add string parameters
-                    params.put("location", ADDRESS); // add string parameters
-                    params.put("latitude", LATITUDE.toString()); // add string parameters
-                    params.put("longitude", LONGITUDE.toString()); // add string parameters
+                    params.put("location", "ADDRESS"); // add string parameters
+                    params.put("latitude", "10101.00"); // add string parameters
+                    params.put("longitude", "10101.00"); // add string parameters
                     // params.put("tags", "ccccc");  add string parameters
+                    Log.d("postData", "getParams: ${params.toString()}")
                     return params
                 }
 
@@ -288,7 +403,7 @@ class AddVehiclePasting : AppCompatActivity() {
             }
 
         volleyMultipartRequest.retryPolicy = DefaultRetryPolicy(
-            0,
+            3000,
             DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
@@ -298,8 +413,22 @@ class AddVehiclePasting : AppCompatActivity() {
 
     fun getFileDataFromDrawable(bitmap: Bitmap): ByteArray {
         val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
         return byteArrayOutputStream.toByteArray()
+
+
+      /*  val newBitmap = Bitmap.createBitmap(
+            bitmap.getWidth(),
+            bitmap.getHeight(),
+            bitmap.getConfig()
+        )
+        val outputStream = ByteArrayOutputStream()
+        newBitmap.compress(Bitmap.CompressFormat.JPEG, 70, outputStream)
+        return outputStream.toByteArray()
+*/
+
+
+
     }
 
 

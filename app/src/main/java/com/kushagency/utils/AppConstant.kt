@@ -7,6 +7,7 @@ import androidx.fragment.app.Fragment
 
 
 const val BASE_URL = "http://kushagencyindore.com/admin/api"
+//https://f592-2402-8100-387e-6d72-4c28-6656-1739-654f.ngrok.io/api
 
 fun isValidVehicleNumber(value : String): Boolean{
     val VEHICLE_NUMBER_REGEX  = "^[a-zA-z]{2}[0-9]{2}[a-zA-z]{2}[0-9]{4}$"
