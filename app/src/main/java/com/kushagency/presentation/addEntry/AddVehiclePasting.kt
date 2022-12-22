@@ -22,6 +22,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.widget.doOnTextChanged
+import androidx.lifecycle.lifecycleScope
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.Request
 import com.android.volley.RequestQueue
@@ -38,6 +39,8 @@ import com.kushagency.utils.BASE_URL
 import com.kushagency.utils.Loader
 import com.kushagency.utils.isValidVehicleNumber
 import com.kushagency.utils.showToast
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -113,7 +116,9 @@ class AddVehiclePasting : AppCompatActivity() {
                 showToast("Select Image")
             } else {
 
-                uploadImage(IMAGE_BITMAP!!)
+               lifecycleScope.launch{
+                   uploadImage(IMAGE_BITMAP!!)
+               }
             }
         }
     }
@@ -242,7 +247,7 @@ class AddVehiclePasting : AppCompatActivity() {
     }
 
     private fun uploadImage(bitmap: Bitmap) {
-        Loader.showLoader(this)
+        Loader.showLoader(this@AddVehiclePasting)
         val volleyMultipartRequest: VolleyMultipartRequest =
             object : VolleyMultipartRequest(
                 Request.Method.POST, "$BASE_URL/addUserAd", { response ->
@@ -269,10 +274,11 @@ class AddVehiclePasting : AppCompatActivity() {
                     params.put("driver_name", mBinding.driveName.text.toString() ); // add string parameters
                     params.put("mobile_number",mBinding.driverNumber.text.toString()); // add string parameters
                     params.put("auto_number", mBinding.vehicleNumber.text.toString()); // add string parameters
-                    params.put("location", ADDRESS); // add string parameters
-                    params.put("latitude", LATITUDE.toString()); // add string parameters
-                    params.put("longitude", LONGITUDE.toString()); // add string parameters
+                    params.put("location", "ADDRESS"); // add string parameters
+                    params.put("latitude", "10101.00"); // add string parameters
+                    params.put("longitude", "10101.00"); // add string parameters
                     // params.put("tags", "ccccc");  add string parameters
+                    Log.d("postData", "getParams: ${params.toString()}")
                     return params
                 }
 
