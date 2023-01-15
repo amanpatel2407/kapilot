@@ -12,7 +12,10 @@ import com.android.volley.Request
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
+import com.google.gson.Gson
 import com.kushagency.databinding.ActivityLoginScreenBinding
+import com.kushagency.model.slotModel.SlotDTO
+import com.kushagency.presentation.SlotDetail
 import com.kushagency.presentation.home.MainActivity
 import com.kushagency.utils.BASE_URL
 import com.kushagency.utils.Loader
@@ -23,15 +26,27 @@ import org.json.JSONObject
 
 class LoginScreen : AppCompatActivity() {
     private lateinit var mBinding : ActivityLoginScreenBinding
+    var slotID = ""
+    var slotDTO = SlotDTO("","")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        window.setFlags(
+        /*window.setFlags(
             WindowManager.LayoutParams.FLAG_FULLSCREEN,
             WindowManager.LayoutParams.FLAG_FULLSCREEN
-        )
+        )*/
         mBinding = DataBindingUtil.setContentView(this, R.layout.activity_login_screen)
 
+        val args = intent.extras
+        if (args !=null){
+            val item = Gson().fromJson(args.getString("data"), SlotDTO::class.java)
+            slotDTO = item
+            MainActivity.SLOTID = item.id
+            slotID = item.id
 
+        }
+        mBinding.ivBack.setOnClickListener {
+            finish()
+        }
         mBinding.button.setOnClickListener {
 
             val username = mBinding.editText.text.toString().trim()
@@ -58,6 +73,7 @@ class LoginScreen : AppCompatActivity() {
         val jsonObject = JSONObject()
         jsonObject.put("username", userName)
         jsonObject.put("password", passWord)
+        jsonObject.put("slot_id", slotID)
         lifecycleScope.launch {
             Log.d("LoginFrag", "sendOtp: $jsonObject")
             val queue: RequestQueue = Volley.newRequestQueue(applicationContext)
@@ -73,9 +89,10 @@ class LoginScreen : AppCompatActivity() {
                     val user_id = response.getString("user_id")
                     SharedPrefrenceHelper.userId = user_id
                     MainActivity.USER_ID = user_id
-                    val intent = Intent(this@LoginScreen, MainActivity::class.java)
-
-                    startActivity(intent)
+                    val srgs = Gson().toJson(slotDTO)
+                    val internt = Intent(this@LoginScreen , SlotDetail::class.java)
+                    internt.putExtra("data", srgs)
+                    startActivity(internt)
                 }else{
                     showToast(message)
                 }

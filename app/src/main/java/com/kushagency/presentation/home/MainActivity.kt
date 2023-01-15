@@ -91,7 +91,8 @@ class MainActivity : AppCompatActivity(), onSlotClick {
     override fun onSlotClick(slotDTO: SlotDTO) {
         SLOTID = slotDTO.id
         val srgs = Gson().toJson(slotDTO)
-        val internt = Intent(this , SlotDetail::class.java)
+        val internt = Intent(this , LoginScreen::class.java)
+
         internt.putExtra("data", srgs)
         startActivity(internt)
 

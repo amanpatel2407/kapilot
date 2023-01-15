@@ -2,12 +2,13 @@ package com.kushagency.presentation.addEntry
 
 import android.Manifest
 import android.app.Activity
-import android.content.ContentValues
 import android.content.Context
 import android.content.DialogInterface
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.location.Address
 import android.location.Geocoder
 import android.location.LocationManager
@@ -15,7 +16,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
+import android.provider.MediaStore.Images
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -25,6 +28,7 @@ import androidx.lifecycle.lifecycleScope
 import com.android.volley.DefaultRetryPolicy
 import com.android.volley.RequestQueue
 import com.android.volley.toolbox.Volley
+import com.kushagency.KAPilotApplication
 import com.kushagency.databinding.ActivityAddVehiclePastingBinding
 import com.kushagency.network.VolleyMultipartRequest
 import com.kushagency.presentation.SlotDetail
@@ -32,12 +36,13 @@ import com.kushagency.presentation.home.MainActivity
 import com.kushagency.presentation.home.MainActivity.Companion.LATITUDE
 import com.kushagency.presentation.home.MainActivity.Companion.LONGITUDE
 import com.kushagency.presentation.home.MainActivity.Companion.SLOTID
+import com.kushagency.utils.BASE_URL
 import com.kushagency.utils.Loader
 import com.kushagency.utils.isValidVehicleNumber
 import com.kushagency.utils.showToast
 import kotlinx.coroutines.launch
 import org.json.JSONObject
-import java.io.ByteArrayOutputStream
+import java.io.*
 import java.util.*
 
 
@@ -51,6 +56,7 @@ class AddVehiclePasting : AppCompatActivity() {
     private lateinit var locationManager: LocationManager
     private val locationPermissionCode = 2
     private lateinit var rQueue: RequestQueue
+
     private var isLoading = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,7 +77,8 @@ class AddVehiclePasting : AppCompatActivity() {
         }
 
         mBinding.vehicleNumber.doOnTextChanged { text, start, before, count ->
-            if (!text.isNullOrEmpty() && text.length == 10) {
+            if (!text.isNullOrEmpty() && text.length > 9) {
+                Log.d("numberplate", "onCreate: ${text.toString()}")
                 if (!isValidVehicleNumber(text.toString())) {
                     mBinding.vehicleNumber.error = "Enter valid vehicle number"
                 } else {
@@ -130,7 +137,7 @@ class AddVehiclePasting : AppCompatActivity() {
                     "onLocationChanged: " + "Latitude: ${location.extras} " + location.latitude + " , Longitude: " + location.longitude
                 )
 
-                showToast("true")
+               // showToast("true")
                 LONGITUDE = location.longitude.toString()
                 LATITUDE = location.latitude.toString()
                 getMapLocation(location.latitude, location.longitude)
@@ -162,15 +169,10 @@ class AddVehiclePasting : AppCompatActivity() {
         builder.setItems(options, DialogInterface.OnClickListener { dialog, item ->
             if (options[item] == "Take Photo") {
                 dialog.dismiss()
-               val  values = ContentValues()
-                values.put(MediaStore.Images.Media.TITLE, "New Picture")
-                values.put(MediaStore.Images.Media.DESCRIPTION, "From your Camera")
-                imageUri = contentResolver.insert(
-                    MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
-                )
-                val intent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                intent.putExtra(MediaStore.EXTRA_OUTPUT, imageUri)
-                startActivityForResult(intent, PICK_IMAGE_CAMERA)
+                val callCameraIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+                if (callCameraIntent.resolveActivity(packageManager) != null) {
+                    startActivityForResult(callCameraIntent, PICK_IMAGE_CAMERA)
+                }
 
             } else if (options[item] == "Choose From Gallery") {
                 dialog.dismiss()
@@ -217,17 +219,22 @@ class AddVehiclePasting : AppCompatActivity() {
                 applicationContext.getContentResolver(),
                 data?.data
             )
-            IMAGE_BITMAP = bitmap
+            imageUri = data?.data
+            mBinding.viewImage.setImageURI(imageUri)
+           // IMAGE_BITMAP = bitmap
+            IMAGE_BITMAP = getBitmapFromView(mBinding.viewImage)
             mBinding.vehicleImg.setImageURI(data?.data)
 
         }else if (requestCode == PICK_IMAGE_CAMERA && resultCode == Activity.RESULT_OK) {
 
             try {
+                val uri =getImageUri(data!!.extras!!.get("data") as Bitmap)
+                uri ?: return
 
+                imageUri = uri
+                mBinding.viewImage.setImageURI(imageUri)
                 try {
-                   IMAGE_BITMAP = MediaStore.Images.Media.getBitmap(
-                        contentResolver, imageUri
-                    )
+                   IMAGE_BITMAP = getBitmapFromView(mBinding.viewImage)
                     mBinding.vehicleImg.setImageBitmap(IMAGE_BITMAP)
                   ///  imageurl = getRealPathFromURI(imageUri)
                 } catch (e: Exception) {
@@ -241,125 +248,45 @@ class AddVehiclePasting : AppCompatActivity() {
         }
     }
 
-
-  /*  fun MultipartApi(
-        requestFor: String?,
-        serviceId: String?,
-        path: String?,
-        filename: String?,
-        comment: String,
-        others: String
-    ) {
-        // String url=Variables.instantServiceMultipart;
-        binding.progressBar.visibility = View.VISIBLE
-        binding.submit.visibility = View.GONE
-        val volleyMultipartRequest: VolleyMultipartRequest = object : VolleyMultipartRequest(
-            Request.Method.POST, Variables.instantServiceMultipart,
-            object : Response.Listener<NetworkResponse> {
-                override fun onResponse(response: NetworkResponse) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.submit.visibility = View.VISIBLE
-                    Log.d("results", String(response.data))
-                    rQueue?.getCache()?.clear()
-                    try {
-                        val jsonObject = JSONObject(String(response.data))
-                        val code: String = jsonObject.optString("code")
-                        if ((code == "200")) {
-                            Toast.makeText(Companion.context, "Upload Successfully", Toast.LENGTH_SHORT)
-                                .show()
-                            val requestId: String = jsonObject.optString("requestId")
-                            val activity: AppCompatActivity? = Companion.context as AppCompatActivity?
-                            val myFragment: Fragment = ChatFragment()
-                            val b = Bundle()
-                            b.putString("requestId", requestId)
-                            myFragment.arguments = b
-                            if (activity != null) {
-                                activity.getSupportFragmentManager().beginTransaction()
-                                    .replace(R.id.frame_layout_home_screen, myFragment)
-                                    .addToBackStack(null).commit()
-                            }
-                            // binding.spinner.setSelection(0);
-                            binding.chooseFile.text = "choose file"
-                            if (binding.comment.text != null) {
-                                binding.comment.setText("")
-                            }
-                            if (binding.others.visibility == View.VISIBLE) {
-                                binding.others.visibility = View.GONE
-                            }
-                        } else if ((code == "201")) {
-                            Toast.makeText(
-                                Companion.context,
-                                jsonObject.optString("message"),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
-                    } catch (e: JSONException) {
-                        e.printStackTrace()
-                    }
-                }
-            },
-            object : Response.ErrorListener {
-                override fun onErrorResponse(error: VolleyError) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.submit.visibility = View.VISIBLE
-                    Toast.makeText(Companion.context, error.message, Toast.LENGTH_SHORT).show()
-                }
-            }) {
-            // request.put("userId", Variables.sharedPreferences.getString(Variables.user_id, null));
-            *//*
-      * If you want to add more parameters with the image
-      * you can do it here
-      * here we have only one parameter with the image
-      * which is tags
-      * *//*
-            override fun getParams(): MutableMap<String, String>? {
-                val request: MutableMap<String, String> = HashMap()
-
-                // request.put("userId", Variables.sharedPreferences.getString(Variables.user_id, null));
-                request["userId"] =
-                    (Variables.sharedPreferences.getString(Variables.user_id, null))!!
-                request["requestFor"] = (requestFor)!!
-                request["serviceId"] = Variables.serviceId!!
-                request["file"] = (path)!!
-                request["fileName"] = (filename)!!
-                request["comment"] = comment
-                request["other"] = others
-                Log.d("parameters", "getParams: ressssssoo $request")
-                return request
-            }
-
-            *//*
-                         *pass files using below method
-                         * *//*
-            override fun getByteData(): MutableMap<String, DataPart> {
-                val params: MutableMap<String, DataPart> = HashMap<String, DataPart>()
-                params["file"] = DataPart(
-                    FileUtils.getFileName(Companion.context, Variables.fileUri),
-                    Functions.getFileDataFromDrawable(
-                        Companion.context
-                    )
-                )
-                return params
-            }
-        }
-        volleyMultipartRequest.setRetryPolicy(
-            DefaultRetryPolicy(
-                0,
-                DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
-                DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
-            )
-        )
-        rQueue = Volley.newRequestQueue(Companion.context)
-        rQueue!!.add<NetworkResponse>(volleyMultipartRequest)
+    fun getImageUri(inImage: Bitmap): Uri? {
+        val bytes = ByteArrayOutputStream()
+        inImage.compress(Bitmap.CompressFormat.JPEG, 100, bytes)
+        val path = Images.Media.insertImage(KAPilotApplication.instance.applicationContext.contentResolver, inImage, "KA_${System.currentTimeMillis()}", null)
+        return Uri.parse(path)
     }
-    */
-
+    fun getBitmapFromView(view: View): Bitmap? {
+        val returnedBitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(returnedBitmap)
+        val bgDrawable = view.background
+        if (bgDrawable != null) bgDrawable.draw(canvas) else canvas.drawColor(Color.WHITE)
+        view.draw(canvas)
+        try {
+//                    File directory = new File(Environment.getExternalStorageDirectory().getAbsolutePath());
+            val cachePath = File(cacheDir, "images")
+            val directoryImage = File("$cachePath/image_${System.currentTimeMillis()}.png")
+            if (!directoryImage.exists()) {
+                if (!cachePath.exists()) {
+                    cachePath.mkdirs() // don't forget to make the directory
+                }
+                val stream =
+                    FileOutputStream("$cachePath/image.png") // overwrites this image every time
+                returnedBitmap.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                stream.flush()
+                stream.close()
+            }
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        return returnedBitmap
+    }
 
     private fun uploadImage(bitmap: Bitmap) {
         Loader.showLoader(this@AddVehiclePasting)
         val volleyMultipartRequest: VolleyMultipartRequest =
             object : VolleyMultipartRequest(
-                Method.POST, "http://kushagencyindore.com/admin/api/addUserAd", { response ->
+                Method.POST, "$BASE_URL/addUserAd", { response ->
 
                     val jsonObject = JSONObject(String(response.data))
                     Log.d("data", "uploadImage: ${jsonObject}")
@@ -383,9 +310,9 @@ class AddVehiclePasting : AppCompatActivity() {
                     params.put("driver_name", mBinding.driveName.text.toString() ); // add string parameters
                     params.put("mobile_number",mBinding.driverNumber.text.toString()); // add string parameters
                     params.put("auto_number", mBinding.vehicleNumber.text.toString()); // add string parameters
-                    params.put("location", "ADDRESS"); // add string parameters
-                    params.put("latitude", "10101.00"); // add string parameters
-                    params.put("longitude", "10101.00"); // add string parameters
+                    params.put("location", "ddsfsdf"); // add string parameters
+                    params.put("latitude", "sd"); // add string parameters
+                    params.put("longitude", "gdgds"); // add string parameters
                     // params.put("tags", "ccccc");  add string parameters
                     Log.d("postData", "getParams: ${params.toString()}")
                     return params
@@ -394,16 +321,20 @@ class AddVehiclePasting : AppCompatActivity() {
                 override fun getByteData(): MutableMap<String, DataPart> {
                     val params = HashMap<String, DataPart>()
                     val imagename = System.currentTimeMillis()
+
+                    val stream = ByteArrayOutputStream()
+                    IMAGE_BITMAP?.compress(Bitmap.CompressFormat.PNG, 90, stream)
+                    val image = stream.toByteArray()
                     params["file"] = DataPart(
                         "${SlotDetail.SLOTS_LIST.size + 2}" + ".png",
-                        getFileDataFromDrawable(bitmap)
+                        image
                     )
                     return params
                 }
             }
 
         volleyMultipartRequest.retryPolicy = DefaultRetryPolicy(
-            3000,
+            6000,
             DefaultRetryPolicy.DEFAULT_MAX_RETRIES,
             DefaultRetryPolicy.DEFAULT_BACKOFF_MULT
         )
@@ -411,9 +342,34 @@ class AddVehiclePasting : AppCompatActivity() {
         rQueue.add(volleyMultipartRequest)
     }
 
+    @Throws(IOException::class)
+    fun getBytes(inputStream: InputStream): ByteArray? {
+        val byteBuffer = ByteArrayOutputStream()
+        val bufferSize = 1024
+        val buffer = ByteArray(bufferSize)
+        var len = 0
+        while (inputStream.read(buffer).also { len = it } != -1) {
+            byteBuffer.write(buffer, 0, len)
+        }
+        return byteBuffer.toByteArray()
+    }
+
+    fun getRealPathFromURI(uri: Uri?): String? {
+        var path = ""
+        if (contentResolver != null) {
+            val cursor = contentResolver.query(uri!!, null, null, null, null)
+            if (cursor != null) {
+                cursor.moveToFirst()
+                val idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA)
+                path = cursor.getString(idx)
+                cursor.close()
+            }
+        }
+        return path
+    }
     fun getFileDataFromDrawable(bitmap: Bitmap): ByteArray {
         val byteArrayOutputStream = ByteArrayOutputStream()
-        bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
+        bitmap.compress(Bitmap.CompressFormat.PNG, 90, byteArrayOutputStream)
         return byteArrayOutputStream.toByteArray()
 
 

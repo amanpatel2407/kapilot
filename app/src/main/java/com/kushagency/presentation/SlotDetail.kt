@@ -1,9 +1,12 @@
 package com.kushagency.presentation
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
-import androidx.appcompat.app.AppCompatActivity
+import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.android.volley.Request
 import com.android.volley.RequestQueue
@@ -12,21 +15,19 @@ import com.android.volley.toolbox.Volley
 import com.google.gson.Gson
 import com.kushagency.databinding.ActivitySlotDetailBinding
 import com.kushagency.model.slotModel.SlotDTO
-import com.kushagency.model.slotModel.SlotResponse
 import com.kushagency.model.vehicleinfo.VehicleDTO
 import com.kushagency.model.vehicleinfo.VehicleListDTO
 import com.kushagency.presentation.addEntry.AddVehiclePasting
 import com.kushagency.presentation.home.MainActivity.Companion.SLOTID
-import com.kushagency.presentation.home.SlotAdapter
 import com.kushagency.presentation.home.onSlotClick
 import com.kushagency.utils.BASE_URL
 import com.kushagency.utils.Loader
-import com.kushagency.utils.autoList
 import com.kushagency.utils.showToast
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 
-class SlotDetail : AppCompatActivity(), onSlotClick {
+
+class SlotDetail : AppCompatActivity(), onSlotClick, onSlotItemClick {
     companion object{
 
         val SLOTS_LIST = ArrayList<VehicleListDTO>()
@@ -73,7 +74,7 @@ class SlotDetail : AppCompatActivity(), onSlotClick {
                     val data = Gson().fromJson(response.toString(), VehicleDTO::class.java)
                     SLOTS_LIST.addAll(data.data)
                     Log.d("categories", "sendOtp: $data")
-                    val adapter = AutoListAdapter(data.data)
+                    val adapter = AutoListAdapter(data.data,this@SlotDetail)
                     mBinding.rvSlot.adapter = adapter
                 }catch (e :Exception){
                     Loader.hideLoader()
@@ -95,5 +96,19 @@ class SlotDetail : AppCompatActivity(), onSlotClick {
     override fun onResume() {
         super.onResume()
         getSlots(SLOTID)
+    }
+
+    override fun onItemClick(vehicleListDTO: VehicleListDTO) {
+         try {
+           val myIntent = Intent(Intent.ACTION_VIEW, Uri.parse(vehicleListDTO.documentUrl))
+           startActivity(myIntent)
+       } catch (e: ActivityNotFoundException) {
+           Toast.makeText(
+               this, "No application can handle this request."
+                       + " Please install a webbrowser", Toast.LENGTH_LONG
+           ).show()
+           e.printStackTrace()
+       }
+
     }
 }

@@ -6,7 +6,7 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 
 
-const val BASE_URL = "http://kushagencyindore.com/admin/api"
+const val BASE_URL = "https://admin.ankitchawda.in/api"
 //https://f592-2402-8100-387e-6d72-4c28-6656-1739-654f.ngrok.io/api
 
 fun isValidVehicleNumber(value : String): Boolean{

@@ -35,7 +35,10 @@ class SplashScreen : AppCompatActivity() {
         Handler().postDelayed({
             Log.d("useriddsd", "onCreate: ${SharedPrefrenceHelper.userId}")
 
-           if (SharedPrefrenceHelper.userId.isNullOrEmpty()){
+            val intent = Intent(this, MainActivity::class.java)
+            startActivity(intent)
+            finish()
+          /* if (SharedPrefrenceHelper.userId.isNullOrEmpty()){
                val intent = Intent(this, LoginScreen::class.java)
                startActivity(intent)
                finish()
@@ -44,7 +47,7 @@ class SplashScreen : AppCompatActivity() {
                val intent = Intent(this, MainActivity::class.java)
                startActivity(intent)
                finish()
-           }
+           }*/
 
         }, 2000) // 3000 is the delayed time in milliseconds.
     }
