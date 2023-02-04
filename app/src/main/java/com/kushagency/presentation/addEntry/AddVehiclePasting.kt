@@ -18,9 +18,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
 import android.view.View
-import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -43,7 +41,6 @@ import com.kushagency.utils.*
 import kotlinx.coroutines.launch
 import org.json.JSONObject
 import java.io.*
-import java.lang.ref.WeakReference
 import java.nio.file.Files
 import java.util.*
 import kotlin.collections.set
@@ -453,4 +450,8 @@ class AddVehiclePasting : AppCompatActivity() {
         getLocation()
     }
 
+    override fun onBackPressed() {
+        super.onBackPressed()
+        CaptureImage.imagePath = null
+    }
 }
